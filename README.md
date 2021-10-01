@@ -3,6 +3,24 @@
 # Song challenge
 
 This bot is being used in the Spotistats for Spotify Discord server.
+## Requirements
 
-## Contributing
-Soon™
+- NodeJS
+- Typescript (TSC)
+
+## Getting it running
+
+```bash
+# download project
+# open terminal in project folder
+yarn # to install the dependencies
+cp .env.example .env # fill in the env file after copying
+yarn tsc # to compile the typescript code
+
+node dist # to start the bot
+
+```
+
+## License
+
+[GNU General Public License v3.0](./LICENSE)
