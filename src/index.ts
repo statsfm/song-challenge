@@ -1,28 +1,28 @@
-import fetch from 'node-fetch';
-import fetchBase64 from 'fetch-base64';
+import fetch from "node-fetch";
+import fetchBase64 from "fetch-base64";
 
-import dotenv from 'dotenv';
-import { SpotifyAPI } from '@statsfm/spotify.js';
-import { Client, Intents, MessageAttachment } from 'discord.js';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import dotenv from "dotenv";
+import { SpotifyAPI } from "@statsfm/spotify.js";
+import { Client, Intents, MessageAttachment } from "discord.js";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 
-if (!existsSync('database.json')) {
-  writeFileSync('database.json', '{"threads":{}}');
+if (!existsSync("database.json")) {
+  writeFileSync("database.json", '{"threads":{}}');
 }
 
 dotenv.config();
 
 const client = new Client({
-  intents: new Intents(['GUILDS', 'GUILD_MESSAGES']),
+  intents: new Intents(["GUILDS", "GUILD_MESSAGES"]),
   presence: {
     activities: [
       {
-        name: 'songs being sent in',
-        type: 'WATCHING',
+        name: "songs being sent in",
+        type: "WATCHING",
       },
     ],
   },
-  partials: ['MESSAGE', 'GUILD_MEMBER', 'USER'],
+  partials: ["MESSAGE", "GUILD_MEMBER", "USER"],
 });
 
 const spotifyApi = new SpotifyAPI({
@@ -35,16 +35,16 @@ const spotifyApi = new SpotifyAPI({
 
 client.login(process.env.DISCORD_TOKEN);
 
-client.on('ready', () => {
-  console.log('Ready!');
+client.on("ready", () => {
+  console.log("Ready!");
 });
 
-client.on('messageCreate', async (message) => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (
     message.channel.isText() &&
-    (message.channel.type === 'GUILD_NEWS' ||
-      message.channel.type === 'GUILD_TEXT') &&
+    (message.channel.type === "GUILD_NEWS" ||
+      message.channel.type === "GUILD_TEXT") &&
     message.channelId === process.env.CHALLENGE_CHANNEL
   ) {
     const day = /Day: (?<day>[0-9]+)/gm.exec(message.content)?.groups?.day;
@@ -61,7 +61,7 @@ client.on('messageCreate', async (message) => {
       day == null ||
       name == null ||
       image == null ||
-      attachment?.contentType != 'image/jpeg' ||
+      attachment?.contentType != "image/jpeg" ||
       attachment?.size > 2560000
     ) {
       message.author.send(
@@ -72,8 +72,8 @@ client.on('messageCreate', async (message) => {
     }
 
     const db = JSON.parse(
-      readFileSync('database.json', {
-        encoding: 'utf8',
+      readFileSync("database.json", {
+        encoding: "utf8",
       })
     );
     // Disable all old threads that are still active.
@@ -97,7 +97,7 @@ client.on('messageCreate', async (message) => {
     // Create new thread
     const thread = await message.startThread({
       autoArchiveDuration: 1440,
-      name: 'Challenge thread',
+      name: "Challenge thread",
       reason: `New challenge was posted by ${message.author.tag} (${message.author.id})`,
     });
 
@@ -111,7 +111,7 @@ client.on('messageCreate', async (message) => {
     db.threads[thread.id] = {
       playlistId: playlist.id,
     };
-    writeFileSync('database.json', JSON.stringify(db));
+    writeFileSync("database.json", JSON.stringify(db));
 
     // Send message to thread
     await thread.send(
@@ -124,13 +124,13 @@ client.on('messageCreate', async (message) => {
         await fetch(
           `https://api.spotify.com/v1/playlists/${playlist.id}/images`,
           {
-            method: 'PUT',
+            method: "PUT",
             headers: {
               Authorization: `Bearer ${spotifyApi.config.acccessToken}`,
-              'Content-Type': attachment.contentType,
+              "Content-Type": attachment.contentType,
             },
             body: data[0],
-            redirect: 'follow',
+            redirect: "follow",
           }
         );
       },
@@ -155,8 +155,8 @@ client.on('messageCreate', async (message) => {
     const spotifyId = /track\/(?<id>[0-9a-zA-Z]+)(.*)?$/gm.exec(message.content)
       ?.groups?.id;
     if (spotifyId?.length == 22) {
-      const db = JSON.parse(readFileSync('database.json').toString());
-      const { playlistId } = db.threads[message.channel.id];
+      const db = JSON.parse(readFileSync("database.json").toString());
+      const playlistId = db.threads[message.channel.id]?.playlistId;
       if (playlistId?.length == 22) {
         await spotifyApi.playlist.add(playlistId, [spotifyId]);
       }
