@@ -77,6 +77,7 @@ client.on("messageCreate", async (message) => {
       return;
     }
 
+    const db = JSON.parse(readFileSync("database.json").toString());
     // Disable all old threads that are still active.
     const activeThreads = await message.channel.threads.fetchActive();
     await Promise.all(
@@ -86,7 +87,11 @@ client.on("messageCreate", async (message) => {
             locked: true,
             archived: true,
           },
-          `New challenge was posted by ${message.author.tag} (${message.author.id})`
+          `New challenge was posted by ${message.author.tag} (${
+            message.author.id
+          }). Yesterdays playlist: https://open.spotfy.com/playlist/${
+            db.threads[thread.id]?.playlistId
+          })`
         )
       )
     );
@@ -104,7 +109,6 @@ client.on("messageCreate", async (message) => {
       collaborative: false,
       description: `This is day ${day} of the Daily Song Challenge by Stats.fm (formerly Spotistats for Spotify). To submit an entry head over the #song-challenge channel in the Discord server -> discord.gg/spotistats :)`,
     });
-    const db = JSON.parse(readFileSync("database.json").toString());
     db.threads[thread.id] = {
       playlistId: playlist.id,
     };
