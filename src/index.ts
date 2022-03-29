@@ -157,7 +157,7 @@ client.on('messageCreate', async (message) => {
     if (spotifyId?.length == 22) {
       const db = JSON.parse(readFileSync('database.json').toString());
       const { playlistId } = db.threads[message.channel.id];
-      if (playlistId?.length == 22) {
+      if (playlistId && playlistId.length == 22) {
         await spotifyApi.playlist.add(playlistId, [spotifyId]);
       }
     }
