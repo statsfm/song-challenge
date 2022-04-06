@@ -81,7 +81,7 @@ client.on("messageCreate", async (message) => {
     await Promise.all(
       activeThreads.threads.map((thread) => {
         thread.send(
-          `This challenge is now closed, check the final playlist here https://open.spotfy.com/playlist/${
+          `This challenge is now closed, check the final playlist here https://open.spotify.com/playlist/${
             db.threads[thread.id]?.playlistId
           }`
         );
