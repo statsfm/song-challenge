@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import fetchBase64 from "fetch-base64";
 
-import dotenv from "dotenv";
+import "dotenv/config";
 import { SpotifyAPI } from "@statsfm/spotify.js";
 import { Client, Intents, MessageAttachment } from "discord.js";
 import { existsSync, readFileSync, writeFileSync } from "fs";
@@ -9,8 +9,6 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 if (!existsSync("database.json")) {
   writeFileSync("database.json", '{"threads":{}}');
 }
-
-dotenv.config();
 
 const client = new Client({
   intents: new Intents(["GUILDS", "GUILD_MESSAGES"]),
@@ -23,6 +21,20 @@ const client = new Client({
     ],
   },
   partials: ["MESSAGE", "GUILD_MEMBER", "USER"],
+  sweepers: {
+    guildMembers: {
+      interval: 1800,
+      filter: () => (member) => member.id !== member.client.user.id,
+    },
+    messages: {
+      interval: 1800,
+      lifetime: 1800,
+    },
+    users: {
+      interval: 1800,
+      filter: () => (user) => user.id !== user.client.user.id,
+    },
+  }
 });
 
 const spotifyApi = new SpotifyAPI({
@@ -42,32 +54,26 @@ client.on("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (
-    message.channel.isText() &&
     (message.channel.type === "GUILD_NEWS" ||
       message.channel.type === "GUILD_TEXT") &&
     message.channelId === process.env.CHALLENGE_CHANNEL
   ) {
     const day = /Day: (?<day>[0-9]+)/gm.exec(message.content)?.groups?.day;
     const name = /Name: (?<name>.*)$/gm.exec(message.content)?.groups?.name;
-    const attachment = Array.from(message?.attachments)
-      ?.at(0)
-      ?.at(1) as MessageAttachment;
+    const attachment = message?.attachments.first();
     const image = attachment?.proxyURL;
 
-    if (
-      day == undefined ||
-      name == undefined ||
-      image == undefined ||
-      day == null ||
-      name == null ||
-      image == null ||
-      attachment?.contentType != "image/jpeg" ||
-      attachment?.size > 2560000
-    ) {
-      message.author.send(
+    if (!(
+      day &&
+      name &&
+      image &&
+      attachment?.contentType === "image/jpeg" &&
+      attachment?.size <= 2560000
+    )) {
+      await message.author.send(
         'Invalid challenge posted. Please make sure to include 2 lines with "Day: XXX" and "Name: The name of the challenge" and an JPEG image attached (max 256kb)'
       );
-      message.delete();
+      await message.delete();
       return;
     }
 
@@ -79,13 +85,13 @@ client.on("messageCreate", async (message) => {
     // Disable all old threads that are still active.
     const activeThreads = await message.channel.threads.fetchActive();
     await Promise.all(
-      activeThreads.threads.map((thread) => {
-        thread.send(
+      activeThreads.threads.map(async (thread) => {
+        await thread.send(
           `This challenge is now closed, check the final playlist here https://open.spotify.com/playlist/${
             db.threads[thread.id]?.playlistId
           }`
         );
-        thread.edit(
+        return thread.edit(
           {
             locked: true,
             archived: true,
@@ -154,10 +160,10 @@ client.on("messageCreate", async (message) => {
 
     const spotifyId = /track\/(?<id>[0-9a-zA-Z]+)(.*)?$/gm.exec(message.content)
       ?.groups?.id;
-    if (spotifyId?.length == 22) {
+    if (spotifyId?.length === 22) {
       const db = JSON.parse(readFileSync("database.json").toString());
       const playlistId = db.threads[message.channel.id]?.playlistId;
-      if (playlistId?.length == 22) {
+      if (playlistId?.length === 22) {
         await spotifyApi.playlist.add(playlistId, [spotifyId]);
       }
     }
